@@ -89,7 +89,7 @@ export function validateObject<T extends ObjectValidateSchema>(
     target: unknown,
     schema: T,
 ): TypeFromSchema<T> {
-    const { nullable, properties, description: desc } = schema;
+    const { description: desc, nullable, properties } = schema;
     const description = desc ?? '값';
     if (target == null) {
         if (!nullable) {
@@ -116,7 +116,16 @@ export function validateArray<T extends ArrayValidateSchema>(
     target: unknown,
     schema: T,
 ): TypeFromSchema<T> {
-    const { description: desc, items: itemSchema, nullable, some, every, none } = schema;
+    const {
+        description: desc,
+        nullable,
+        items: itemSchema,
+        minLength,
+        maxLength,
+        some,
+        every,
+        none,
+    } = schema;
     const description = desc ?? '값';
 
     if (target == null) {
@@ -128,6 +137,7 @@ export function validateArray<T extends ArrayValidateSchema>(
     if (!Array.isArray(target)) {
         throw `${description}은 array 타입이어야 합니다.`;
     }
+
     let checkSome = some == null;
     let checkEvery = every == null;
     let checkNone = none == null;
@@ -152,6 +162,13 @@ export function validateArray<T extends ArrayValidateSchema>(
         toArray,
     );
 
+    if (minLength != null && result.length < minLength) {
+        throw `${description}은 ${minLength}개 이상의 요소를 포함해야 합니다.`;
+    }
+    if (maxLength != null && maxLength < result.length) {
+        throw `${description}은 ${maxLength}개 이하의 요소를 포함해야 합니다.`;
+    }
+
     if (!checkSome || !checkEvery || !checkNone) {
         throw `${description}이 주어진 조건을 만족하지 않습니다.`;
     }
@@ -163,6 +180,7 @@ export function validateString<T extends StringValidateSchema>(
     schema: T,
 ): TypeFromSchema<T> {
     const {
+        nullable,
         description: desc,
         minLength,
         maxLength,
@@ -171,7 +189,6 @@ export function validateString<T extends StringValidateSchema>(
         startsWith,
         endsWith,
         includes,
-        nullable,
         in: inn,
         notIn,
     } = schema;
@@ -265,7 +282,6 @@ export function validateBoolean<T extends BooleanValidateSchema>(
 
     return target as TypeFromSchema<T>;
 }
-
 export function validate<T extends ValidateSchema>(target: unknown, schema: T): TypeFromSchema<T> {
     const type = schema.type;
     switch (type) {
@@ -282,45 +298,4 @@ export function validate<T extends ValidateSchema>(target: unknown, schema: T): 
         default:
             throw `지원하지 않는 타입입니다. (${type})`;
     }
-}
-
-export function example() {
-    const bool = !isNaN(parseInt('qwe1234'));
-    const data = validate(
-        {
-            name: '민혁',
-            idsToDelete: [1, 2, 3, undefined, null],
-            itemInfo: {
-                name: '안녕하세요',
-                phone: '1234567890123',
-            },
-        },
-        {
-            type: 'object',
-            // nullable: false,
-            // items: { type: 'number', nullable: bool },
-            properties: {
-                name: {
-                    type: 'string',
-                    minLength: 2,
-                    maxLength: 20,
-                    description: '이름',
-                    nullable: bool,
-                },
-                idsToDelete: {
-                    type: 'array',
-                    items: { type: 'number', description: '삭제할 아이디' },
-                },
-                // itemInfo: {
-                //     type: 'object',
-                //     properties: {
-                //         name: { type: 'string', maxLength: 10 },
-                //         phone: { type: 'string', regex: /^\d{12,14}$/ },
-                //     },
-                // },
-            },
-        },
-    );
-
-    console.log(data);
 }
